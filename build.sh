@@ -5,11 +5,11 @@ if [[ ! -f .env ]]; then
     cp .example.env .env
 fi
 
-docker pull kartoza/postgis:$POSTGRES_MAJOR_VERSION-$POSTGIS_MAJOR_VERSION.${POSTGIS_MINOR_RELEASE}
+docker pull postgres:$POSTGRES_MAJOR_VERSION-alpine
 
 if [[ $(dpkg -l | grep "docker-compose") > /dev/null ]];then
 
-  docker-compose -f docker-compose.build.yml build postgis-backup-prod
+  docker-compose -f docker-compose.build.yml build postgres-backup-prod
 else
-  docker compose -f docker-compose.build.yml build postgis-backup-prod
+  docker compose -f docker-compose.build.yml build postgres-backup-prod
 fi

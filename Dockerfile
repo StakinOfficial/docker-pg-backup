@@ -2,14 +2,12 @@
 # Production Stage                                                           #
 ##############################################################################
 ARG POSTGRES_MAJOR_VERSION=16
-ARG POSTGIS_MAJOR_VERSION=3
-ARG POSTGIS_MINOR_RELEASE=4
 
-FROM kartoza/postgis:$POSTGRES_MAJOR_VERSION-$POSTGIS_MAJOR_VERSION.${POSTGIS_MINOR_RELEASE} AS postgis-backup-production
+FROM postgres:$POSTGRES_MAJOR_VERSION-alpine AS postgres-backup-production
 
-RUN apt-get -y update; apt-get -y --no-install-recommends install  cron python3-pip vim  gettext \
-    && apt-get -y --purge autoremove && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk update && apk add --no-cache python3 py3-pip vim gettext \
+    && rm -rf /var/cache/apk/*
+
 RUN pip3 install s3cmd python-magic --break-system-packages
 RUN touch /var/log/cron.log
 
@@ -19,7 +17,6 @@ ENV \
 ADD build_data /build_data
 ADD scripts /backup-scripts
 RUN chmod 0755 /backup-scripts/*.sh
-RUN sed -i 's/PostGIS/PgBackup/' ~/.bashrc
 
 WORKDIR /backup-scripts
 
@@ -30,16 +27,13 @@ CMD []
 ##############################################################################
 # Testing Stage                                                           #
 ##############################################################################
-FROM postgis-backup-production AS postgis-backup-test
+FROM postgres-backup-production AS postgres-backup-test
 
 COPY scenario_tests/utils/requirements.txt /lib/utils/requirements.txt
 
 RUN set -eux \
-    && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get update \
-    && apt-get -y --no-install-recommends install python3-pip \
-    && apt-get -y --purge autoremove \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apk update \
+    && apk add --no-cache python3 py3-pip \
+    && rm -rf /var/cache/apk/*
 
 RUN pip3 install -r /lib/utils/requirements.txt --break-system-packages
