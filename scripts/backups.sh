@@ -24,8 +24,13 @@ function clean_s3bucket() {
   else
     s3cmd ls s3://${S3_BUCKET} --recursive | while read -r line; do
       createDate=$(echo $line | awk {'print $1'})
-      createDate=$(date -d"$createDate" +%s)
-      olderThan=$(date -d"$DEL_DAYS ago" +%s)
+      createDate=$(date -d "$createDate" +%s)
+
+      # Calculate the epoch time DEL_DAYS ago
+      CURRENT_DATE=$(date +%s)
+      DEL_SECONDS=$((DEL_DAYS * 86400))
+      olderThan=$((CURRENT_DATE - DEL_SECONDS))
+
       if [[ $createDate -lt $olderThan ]]; then
         fileName=$(echo $line | awk {'print $4'})
         echo $fileName
@@ -139,6 +144,6 @@ if [ "${REMOVE_BEFORE:-}" ]; then
     find ${MYBASEDIR}/* -type f -mmin +${TIME_MINUTES} -delete &>>/var/log/cron.log
   elif [[ ${STORAGE_BACKEND} == "S3" ]]; then
     # Credits https://shout.setfive.com/2011/12/05/deleting-files-older-than-specified-time-with-s3cmd-and-bash/
-    clean_s3bucket "${BUCKET}" "${REMOVE_BEFORE} days"
+    clean_s3bucket "${BUCKET}" "${REMOVE_BEFORE}"
   fi
 fi
